@@ -39,7 +39,8 @@
  * OFF       no lights     no lights
  *
  * INT       all input events are generated, interrupts are used
- * POLL      no input events by default, to get them, send 0b10000000 (read below)
+ * POLL      no input events by default, to get them,
+ * 	     send 0b10000000 (read below)
  *
  * Commands: write
  * 
@@ -55,9 +56,10 @@
  * OFF_INT or OFF_POLL  |
  *                      |  0b1 -> OFF_INT
  *
- * Any state |   0b10000000 -> if the slidebar has updated data, produce one
- *                             input event (last position), switch to respective
- *                             POLL mode (like 0x0), if not in POLL mode yet.
+ * Any state |   0b10000000 ->  if the slidebar has updated data,
+ *				produce one input event (last position),
+ *				switch to respective POLL mode
+ *				(like 0x0), if not in POLL mode yet.
  *
  * Get current state: read
  * 
