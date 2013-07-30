@@ -204,7 +204,8 @@ static ssize_t show_slidebar_mode(struct device *dev,
 
 static ssize_t store_slidebar_mode(struct device *dev,
 				struct device_attribute *attr,
-				const char *buf, size_t count) {
+				const char *buf, size_t count)
+{
 	int mode;
 	if (!count)
 		return 0;
@@ -228,18 +229,21 @@ static struct attribute_group ideapad_attribute_group = {
 	.attrs = ideapad_attributes
 };
 
-static int setup_slidebar_mode_dev(void) {
+static int setup_slidebar_mode_dev(void)
+{
 	return sysfs_create_group(&slidebar_platform_dev->dev.kobj,
 				  &ideapad_attribute_group);
 }
 
-static void remove_slidebar_mode_dev(void) {
+static void remove_slidebar_mode_dev(void)
+{
 	return sysfs_remove_group(&slidebar_platform_dev->dev.kobj,
 				  &ideapad_attribute_group);
 }
 
 /* Platform device */
-static int setup_platform_dev(void) {
+static int setup_platform_dev(void)
+{
 	int err;
 	slidebar_platform_dev = platform_device_alloc("ideapad_slidebar", -1);
 	if (!slidebar_platform_dev) {
@@ -259,7 +263,8 @@ static int setup_platform_dev(void) {
 	return err;
 }
 
-static void remove_platform_dev(void) {
+static void remove_platform_dev(void)
+{
 	platform_device_del(slidebar_platform_dev);
 	platform_device_put(slidebar_platform_dev);
 }
@@ -272,7 +277,8 @@ static struct platform_driver slidebar_drv = {
 	},
 };
 
-static int register_platform_drv(void) {
+static int register_platform_drv(void)
+{
 	int err;
 	err = platform_driver_register(&slidebar_drv);
 	if (err) {
@@ -281,12 +287,14 @@ static int register_platform_drv(void) {
 	return err;
 }
 
-static void unregister_platform_drv(void) {
+static void unregister_platform_drv(void)
+{
 	platform_driver_unregister(&slidebar_drv);
 }
 
 /* DMI */
-static int ideapad_dmi_check(const struct dmi_system_id *id) {
+static int ideapad_dmi_check(const struct dmi_system_id *id)
+{
 	pr_info("ideapad_slidebar: Laptop model '%s'\n", id->ident);
 	return 1;
 }
@@ -304,7 +312,8 @@ static struct dmi_system_id __initdata ideapad_dmi_table[] = {
 };
 
 /* Init and cleanup */
-static int __init slidebar_init(void) {
+static int __init slidebar_init(void)
+{
 	int err;
 
 	if(!force && !dmi_check_system(ideapad_dmi_table))
@@ -336,7 +345,8 @@ static int __init slidebar_init(void) {
 	return err;
 }
 
-static void __exit slidebar_exit(void) {
+static void __exit slidebar_exit(void)
+{
 	remove_slidebar_mode_dev();
 	remove_input_dev();
 	remove_platform_dev();
