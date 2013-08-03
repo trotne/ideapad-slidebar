@@ -4,7 +4,7 @@
  * Copyright (C) 2013 Andrey Moiseev <o2g.org.ru@gmail.com>
  *
  * Reverse-engineered from Lenovo SlideNav software (SBarHook.dll).
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
  * Software Foundation; either version 2 of the License, or (at your option)
@@ -14,20 +14,20 @@
  */
 
 /* Currently tested and works on:
- * 	Lenovo IdeaPad Y550
- * 	Lenovo IdeaPad Y550P
+ *	Lenovo IdeaPad Y550
+ *	Lenovo IdeaPad Y550P
  *
  * Other models can be added easily. To test,
  * load with 'force' parameter set 'true'.
- * 
+ *
  * LEDs blinking and input mode are managed via sysfs,
  * (hex, unsigned byte value):
  * /sys/devices/platform/ideapad_slidebar/slidebar_mode
- * 
+ *
  * The value is in byte range, however, I only figured out
  * how bits 0b10011001 work. Some other bits, probably,
  * are meaningfull too.
- * 
+ *
  * Possible states:
  *
  * STD_INT, ONMOV_INT, OFF_INT, LAST_POLL, OFF_POLL
@@ -41,10 +41,10 @@
  *
  * INT       all input events are generated, interrupts are used
  * POLL      no input events by default, to get them,
- * 	     send 0b10000000 (read below)
+ *	     send 0b10000000 (read below)
  *
  * Commands: write
- * 
+ *
  * All      |  0b01001 -> STD_INT
  * possible |  0b10001 -> ONMOV_INT
  * states   |  0b01000 -> OFF_INT
@@ -63,7 +63,7 @@
  *				(like 0x0), if not in POLL mode yet.
  *
  * Get current state: read
- * 
+ *
  * masked by 0x11 read value means:
  *
  * 0x00   LAST
@@ -80,7 +80,7 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/input.h>
-#include <asm/io.h>
+#include <linux/io.h>
 
 static bool force;
 module_param(force, bool, 0);
@@ -90,8 +90,8 @@ MODULE_PARM_DESC(force, "Force driver load, ignore DMI data");
 
 spinlock_t sio_lock = __SPIN_LOCK_UNLOCKED(sio_lock);
 
-static int prev_scancode = 0x00;
-static int touched = 0;
+static int prev_scancode;
+static int touched;
 static struct input_dev *slidebar_input_dev;
 static struct platform_device *slidebar_platform_dev;
 
@@ -141,7 +141,8 @@ static irq_handler_t kbd_irq_handler(int irq, void *dev_id,
 		input_report_key(slidebar_input_dev, BTN_TOUCH, 0);
 		input_sync(slidebar_input_dev);
 	} else if (prev_scancode == 0xe0 && scancode == 0x3b) {
-		if(!touched) input_report_key(slidebar_input_dev, BTN_TOUCH, 1);
+		if (!touched)
+			input_report_key(slidebar_input_dev, BTN_TOUCH, 1);
 		touched = 1;
 		input_report_abs(slidebar_input_dev, ABS_X, slidebar_pos_get());
 		input_sync(slidebar_input_dev);
@@ -151,7 +152,7 @@ static irq_handler_t kbd_irq_handler(int irq, void *dev_id,
 }
 
 /* Input device */
-static int setup_input_dev(void) 
+static int setup_input_dev(void)
 {
 	int err;
 	err = request_irq(KBD_IRQ, (irq_handler_t) kbd_irq_handler, IRQF_SHARED,
@@ -183,10 +184,10 @@ static int setup_input_dev(void)
 	}
 	return 0;
 
-	err_free_dev:
-		input_free_device(slidebar_input_dev);
-	err_free_irq:
-		free_irq(KBD_IRQ, (void *)(kbd_irq_handler));
+err_free_dev:
+	input_free_device(slidebar_input_dev);
+err_free_irq:
+	free_irq(KBD_IRQ, (void *)(kbd_irq_handler));
 	return err;
 }
 
@@ -213,7 +214,7 @@ static ssize_t store_slidebar_mode(struct device *dev,
 	if (!count)
 		return 0;
 
-	if(sscanf(buf, "%x", &mode) != 1)
+	if (sscanf(buf, "%x", &mode) != 1)
 		return -EINVAL;
 
 	slidebar_mode_set(mode);
@@ -261,8 +262,8 @@ static int setup_platform_dev(void)
 	}
 	return 0;
 
-	err_free_platform_device:
-		platform_device_put(slidebar_platform_dev);
+err_free_platform_device:
+	platform_device_put(slidebar_platform_dev);
 	return err;
 }
 
@@ -284,9 +285,9 @@ static int register_platform_drv(void)
 {
 	int err;
 	err = platform_driver_register(&slidebar_drv);
-	if (err) {
+	if (err)
 		pr_err("ideapad_slidebar: Failed to register platform driver\n");
-	}
+
 	return err;
 }
 
@@ -348,12 +349,12 @@ static int __init slidebar_init(void)
 		goto err_remove_input_dev;
 	return 0;
 
-	err_remove_input_dev:
-		remove_input_dev();
-	err_unregister_platform_drv:
-		unregister_platform_drv();
-	err_remove_platform_dev:
-		remove_platform_dev();
+err_remove_input_dev:
+	remove_input_dev();
+err_unregister_platform_drv:
+	unregister_platform_drv();
+err_remove_platform_dev:
+	remove_platform_dev();
 	return err;
 }
 
