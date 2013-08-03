@@ -14,6 +14,7 @@
  */
 
 /* Currently tested and works on:
+ * 	Lenovo IdeaPad Y550
  * 	Lenovo IdeaPad Y550P
  *
  * Other models can be added easily. To test,
@@ -143,7 +144,7 @@ static irq_handler_t kbd_irq_handler(int irq, void *dev_id,
 		if(!touched) input_report_key(slidebar_input_dev, BTN_TOUCH, 1);
 		touched = 1;
 		input_report_abs(slidebar_input_dev, ABS_X, slidebar_pos_get());
-			input_sync(slidebar_input_dev);
+		input_sync(slidebar_input_dev);
 	}
 	prev_scancode = scancode;
 	return (irq_handler_t) IRQ_HANDLED;
@@ -303,6 +304,15 @@ static int ideapad_dmi_check(const struct dmi_system_id *id)
 
 static struct dmi_system_id __initdata ideapad_dmi_table[] = {
 	{
+		.ident = "Lenovo IdeaPad Y550",
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "LENOVO"),
+			DMI_MATCH(DMI_PRODUCT_NAME, "20017"),
+			DMI_MATCH(DMI_PRODUCT_VERSION, "Lenovo IdeaPad Y550")
+		},
+		.callback = ideapad_dmi_check
+	},
+	{
 		.ident = "Lenovo IdeaPad Y550P",
 		.matches = {
 			DMI_MATCH(DMI_SYS_VENDOR, "LENOVO"),
@@ -318,7 +328,7 @@ static int __init slidebar_init(void)
 {
 	int err;
 
-	if(!force && !dmi_check_system(ideapad_dmi_table))
+	if (!force && !dmi_check_system(ideapad_dmi_table))
 		return -ENODEV;
 
 	err = setup_platform_dev();
@@ -363,4 +373,5 @@ MODULE_DESCRIPTION("Slidebar input support for some Lenovo IdeaPad laptops");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("0.1");
 
+MODULE_ALIAS("dmi:*:svnLENOVO:pn20017:pvrLenovoIdeaPadY550:*");
 MODULE_ALIAS("dmi:*:svnLENOVO:pn20035:pvrLenovoIdeaPadY550P:*");
