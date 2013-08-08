@@ -77,21 +77,16 @@
 #include <linux/dmi.h>
 #include <linux/spinlock.h>
 #include <linux/platform_device.h>
-#include <linux/interrupt.h>
-#include <linux/irq.h>
 #include <linux/input.h>
 #include <linux/io.h>
+#include <linux/i8042.h>
 
 static bool force;
 module_param(force, bool, 0);
 MODULE_PARM_DESC(force, "Force driver load, ignore DMI data");
 
-#define KBD_IRQ 1
-
 spinlock_t sio_lock = __SPIN_LOCK_UNLOCKED(sio_lock);
 
-static int prev_scancode;
-static int touched;
 static struct input_dev *slidebar_input_dev;
 static struct platform_device *slidebar_platform_dev;
 
@@ -130,43 +125,41 @@ static void slidebar_mode_set(unsigned char mode)
 	spin_unlock_irqrestore(&sio_lock, flags);
 }
 
-/* Keyboard handler */
-static irq_handler_t kbd_irq_handler(int irq, void *dev_id,
-					struct pt_regs *regs)
+/* Listening the keyboard (i8042 filter) */
+static bool slidebar_i8042_filter(unsigned char data, unsigned char str,
+				struct serio *port)
 {
+	static bool extended, touched;
 	/* Scancodes: e03b on move, bb on release */
-	int scancode = inb(0x60);
-	if (scancode == 0xbb) {
-		touched = 0;
-		input_report_key(slidebar_input_dev, BTN_TOUCH, 0);
-		input_sync(slidebar_input_dev);
-	} else if (prev_scancode == 0xe0 && scancode == 0x3b) {
+	if (unlikely(data == 0xe0)) {
+		extended = true;
+		return false;
+	} else if (unlikely(extended && data == 0x3b)) {
+		extended = false;
 		if (!touched)
 			input_report_key(slidebar_input_dev, BTN_TOUCH, 1);
-		touched = 1;
+		touched = true;
 		input_report_abs(slidebar_input_dev, ABS_X, slidebar_pos_get());
 		input_sync(slidebar_input_dev);
+		return false;
+	} else if (unlikely(!extended && data == 0xbb)) {
+		touched = false;
+		input_report_key(slidebar_input_dev, BTN_TOUCH, 0);
+		input_sync(slidebar_input_dev);
 	}
-	prev_scancode = scancode;
-	return (irq_handler_t) IRQ_HANDLED;
+
+	return false;
 }
 
 /* Input device */
 static int setup_input_dev(void)
 {
 	int err;
-	err = request_irq(KBD_IRQ, (irq_handler_t) kbd_irq_handler, IRQF_SHARED,
-				"ideapad_slidebar", (void *)(kbd_irq_handler));
-	if (err) {
-		pr_err("ideapad_slidebar: Can't allocate irq %d\n", KBD_IRQ);
-		return -EBUSY;
-	}
 
 	slidebar_input_dev = input_allocate_device();
 	if (!slidebar_input_dev) {
 		pr_err("ideapad_slidebar: Not enough memory\n");
-		err = -ENOMEM;
-		goto err_free_irq;
+		return -ENOMEM;
 	}
 
 	slidebar_input_dev->name = "IdeaPad Slidebar";
@@ -182,18 +175,24 @@ static int setup_input_dev(void)
 		pr_err("ideapad_slidebar: Failed to register device\n");
 		goto err_free_dev;
 	}
+
+	err = i8042_install_filter(slidebar_i8042_filter);
+	if (err) {
+		pr_err("ideapad_slidebar: Can't install i8042 filter \n");
+		goto err_unregister_dev;
+	}
 	return 0;
 
+err_unregister_dev:
+	input_unregister_device(slidebar_input_dev);
 err_free_dev:
 	input_free_device(slidebar_input_dev);
-err_free_irq:
-	free_irq(KBD_IRQ, (void *)(kbd_irq_handler));
 	return err;
 }
 
 static void remove_input_dev(void)
 {
-	free_irq(KBD_IRQ, (void *)(kbd_irq_handler));
+	i8042_remove_filter(slidebar_i8042_filter);
 	input_unregister_device(slidebar_input_dev);
 	input_free_device(slidebar_input_dev);
 }
