@@ -129,12 +129,13 @@ static void slidebar_mode_set(unsigned char mode)
 static bool slidebar_i8042_filter(unsigned char data, unsigned char str,
 				struct serio *port)
 {
-	static bool extended, touched;
+	static bool extended = false, touched = false;
+
 	/* Scancodes: e03b on move, bb on release */
 	if (unlikely(data == 0xe0)) {
 		extended = true;
 		return false;
-	} else if (unlikely(extended && data == 0x3b)) {
+	} else if (unlikely(extended && (data == 0x3b))) {
 		extended = false;
 		if (!touched)
 			input_report_key(slidebar_input_dev, BTN_TOUCH, 1);
@@ -142,7 +143,7 @@ static bool slidebar_i8042_filter(unsigned char data, unsigned char str,
 		input_report_abs(slidebar_input_dev, ABS_X, slidebar_pos_get());
 		input_sync(slidebar_input_dev);
 		return false;
-	} else if (unlikely(!extended && data == 0xbb)) {
+	} else if (unlikely(extended && (data == 0xbb))) {
 		touched = false;
 		input_report_key(slidebar_input_dev, BTN_TOUCH, 0);
 		input_sync(slidebar_input_dev);
