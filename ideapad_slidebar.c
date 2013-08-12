@@ -13,7 +13,8 @@
  * Trademarks are the property of their respective owners.
  */
 
-/* Currently tested and works on:
+/*
+ * Currently tested and works on:
  *	Lenovo IdeaPad Y550
  *	Lenovo IdeaPad Y550P
  *
@@ -85,7 +86,7 @@ static bool force;
 module_param(force, bool, 0);
 MODULE_PARM_DESC(force, "Force driver load, ignore DMI data");
 
-spinlock_t sio_lock = __SPIN_LOCK_UNLOCKED(sio_lock);
+static spinlock_t sio_lock = __SPIN_LOCK_UNLOCKED(sio_lock);
 
 static struct input_dev *slidebar_input_dev;
 static struct platform_device *slidebar_platform_dev;
@@ -131,7 +132,7 @@ static bool slidebar_i8042_filter(unsigned char data, unsigned char str,
 {
 	static bool extended = false, touched = false;
 
-	/* Scancodes: e03b on move, bb on release */
+	/* Scancodes: e03b on move, e0bb on release */
 	if (unlikely(data == 0xe0)) {
 		extended = true;
 		return false;
@@ -303,7 +304,7 @@ static int ideapad_dmi_check(const struct dmi_system_id *id)
 	return 1;
 }
 
-static struct dmi_system_id __initdata ideapad_dmi_table[] = {
+static struct dmi_system_id ideapad_dmi_table[] __initconst = {
 	{
 		.ident = "Lenovo IdeaPad Y550",
 		.matches = {
@@ -321,7 +322,8 @@ static struct dmi_system_id __initdata ideapad_dmi_table[] = {
 			DMI_MATCH(DMI_PRODUCT_VERSION, "Lenovo IdeaPad Y550P")
 		},
 		.callback = ideapad_dmi_check
-	}
+	},
+	{ }
 };
 
 /* Init and cleanup */
