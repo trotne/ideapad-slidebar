@@ -145,8 +145,10 @@ static bool slidebar_i8042_filter(unsigned char data, unsigned char str,
 		input_sync(slidebar_input_dev);
 		return false;
 	} else if (unlikely(extended && (data == 0xbb))) {
+		extended = false;
 		input_report_key(slidebar_input_dev, BTN_TOUCH, 0);
 		input_sync(slidebar_input_dev);
+		return false;
 	}
 	return false;
 }
